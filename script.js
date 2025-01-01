@@ -1,11 +1,10 @@
 const Player = (sign) => {
   return {
-    sign: sign,  // Store the sign
-    getSign: () => sign  // Define a getSign method
+    sign: sign,
+    getSign: () => sign
   };
 };
 
-//functions related to the Game Board
 const gameBoard = () => {
   const board = new Array(9).fill(undefined);
 
@@ -13,32 +12,35 @@ const gameBoard = () => {
   
   const dropToken = (index, sign) => {
     if (board[index] === undefined) {
-    board[index] = sign;
-  } else {
-    console.log("This field is already taken")
-  }
+      board[index] = sign;
+    } else {
+      console.log("This square is already taken")
+    }
   }
 
   const getToken = (index) => board[index];
 
   const resetBoard = () => {
-    for (i = 0; i < board.length; i++) {
+    for (let i = 0; i < board.length; i++) {
       board[i] = undefined;
     }
   }
+  
   return { getBoard, dropToken, getToken, resetBoard }
 }
 
-//function related to controlling the game
+
+
 const gameControls = () => {
-  const player1 = Player("x");
-  const player2 = Player("o");
+  const player1 = Player("\u2715");
+  const player2 = Player("\u25EF");
   const board = gameBoard();
+  const getBoard = () => board;
 
   let activePlayer = player1;
   let round = 0;
 
-  const getRound = () => round; 
+  const getRound = () => round;
 
   const switchPlayer = () => {
     activePlayer = (activePlayer === player1) ? player2 : player1;
@@ -47,7 +49,7 @@ const gameControls = () => {
   const getActivePlayer = () => activePlayer;
 
   const playRound = (index) => {
-    console.log(`${getActivePlayer().sign} puts his tokken on the number ${index}`);
+    console.log(`${getActivePlayer().sign} puts their token on square ${index}`);
     board.dropToken(index, getActivePlayer().getSign());
     console.log(board.getBoard());
 
@@ -57,7 +59,7 @@ const gameControls = () => {
       board.resetBoard();
       round = 0;
     } else {
-      if (round === 9) {
+      if (round === 8) { 
         console.log("It's a draw!");
         board.resetBoard();
         round = 0;
@@ -71,33 +73,86 @@ const gameControls = () => {
 
   const checkWin = (board) => {
     const winningCombinations = [
-      // Horizontal
-      [0, 1, 2],  // top row
-      [3, 4, 5],  // middle row
-      [6, 7, 8],  // bottom row
-      // Vertical
-      [0, 3, 6],  // left column
-      [1, 4, 7],  // middle column
-      [2, 5, 8],  // right column
-      // Diagonal
-      [0, 4, 8],  // top-left to bottom-right
-      [2, 4, 6]   // top-right to bottom-left
+      [0, 1, 2], [3, 4, 5], [6, 7, 8], // Horizontal
+      [0, 3, 6], [1, 4, 7], [2, 5, 8], // Vertical
+      [0, 4, 8], [2, 4, 6]             // Diagonal
     ];
 
     for (const combination of winningCombinations) {
       const [a, b, c] = combination;
       if (board[a] && board[a] === board[b] && board[a] === board[c]) {
-        return board[a]; //return winning sign
+        return board[a];
       }
     }
-    return null; //no winner
+    return null;
   }
 
-  return { playRound, switchPlayer, getActivePlayer, getRound, checkWin };
+  return { 
+    playRound, 
+    switchPlayer, 
+    getActivePlayer, 
+    getRound, 
+    checkWin,
+    getBoard  
+  };
 }
 
+const displayControls = () => {
+  const game = gameControls();
+  const boardDiv = document.querySelector('.board');
+  const statusDiv = document.querySelector('.status');
+  
+  const updateStatus = () => {
+    statusDiv.textContent = `Player ${game.getActivePlayer().sign}'s turn`;
+  };
+  
+  const updateDisplay = () => {
+    boardDiv.innerHTML = '';
+    
+    
+    const currentBoard = game.getBoard().getBoard();
+    
+    currentBoard.forEach((squareValue, index) => {
+      const squareDiv = document.createElement('div');
+      squareDiv.classList.add('square');
+      
+      
+      squareDiv.textContent = squareValue || '';
+      
+      squareDiv.addEventListener('click', () => {
+        if (game.getRound() < 9 && !squareValue) {
+          game.playRound(index);
+          
+          updateDisplay();
+          updateStatus();
+          
+          const winner = game.checkWin(game.getBoard().getBoard());
+          
+          if (winner) {
+            statusDiv.textContent = `Player ${winner} wins!`;
+            setTimeout(() => {
+              game.getBoard().resetBoard();
+              updateDisplay();
+              updateStatus();
+            }, 1500);
+          } else if (game.getRound() === 9) {
+            statusDiv.textContent = "It's a draw!";
+            setTimeout(() => {
+              game.getBoard().resetBoard();
+              updateDisplay();
+              updateStatus();
+            }, 1500);
+          }
+        }
+      });
+      
+      boardDiv.appendChild(squareDiv);
+    });
+  };
+  
+  updateDisplay();
+  updateStatus();
+};
 
-const game = gameControls();
-while (game.getRound() < 9) {
-  game.playRound(prompt(`Player ${game.getActivePlayer().sign}, choose a number between 0 and 8`));
-}
+// Start the game
+displayControls();
