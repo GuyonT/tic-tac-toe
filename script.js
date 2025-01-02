@@ -1,32 +1,36 @@
 const Player = (sign) => {
   return {
-    sign: sign,
-    getSign: () => sign
+      sign: sign,
+      getSign: () => sign
   };
 };
 
+//functions related to the game board
 const gameBoard = () => {
   const board = new Array(9).fill(undefined);
 
   const getBoard = () => board;
-  
-  const dropToken = (index, sign) => {
-    if (board[index] === undefined) {
-      board[index] = sign;
-    } else {
-      console.log("This square is already taken")
-    }
+
+  const dropToken = (index, sign) => { //placing a token on an index
+      if (board[index] === undefined) {
+          board[index] = sign;
+      }
   }
 
-  const getToken = (index) => board[index];
+  const getToken = (index) => board[index]; //getting the token on an index
 
   const resetBoard = () => {
-    for (let i = 0; i < board.length; i++) {
-      board[i] = undefined;
-    }
+      for (let i = 0; i < board.length; i++) {
+          board[i] = undefined;
+      }
   }
-  
-  return { getBoard, dropToken, getToken, resetBoard }
+
+  return {
+      getBoard,
+      dropToken,
+      getToken,
+      resetBoard
+  }
 }
 
 
@@ -43,116 +47,155 @@ const gameControls = () => {
   const getRound = () => round;
 
   const switchPlayer = () => {
-    activePlayer = (activePlayer === player1) ? player2 : player1;
+      activePlayer = (activePlayer === player1) ? player2 : player1;
   }
 
   const getActivePlayer = () => activePlayer;
 
-  const playRound = (index) => {
-    console.log(`${getActivePlayer().sign} puts their token on square ${index}`);
-    board.dropToken(index, getActivePlayer().getSign());
-    console.log(board.getBoard());
-
-    const winner = checkWin(board.getBoard());
-    if (winner) {
-      console.log(`Player ${winner} wins!`);
-      board.resetBoard();
+  const resetGame = () => {
       round = 0;
-    } else {
-      if (round === 8) { 
-        console.log("It's a draw!");
-        board.resetBoard();
-        round = 0;
+      board.resetBoard();
+      activePlayer = player1;
+  }
+
+  const playRound = (index) => {
+      board.dropToken(index, getActivePlayer().getSign());
+
+      const winner = checkWin(board.getBoard());
+      if (winner) {
+          return {
+              gameOver: true,
+              winner: winner
+          };
+      } else if (round === 8) {
+          return {
+              gameOver: true,
+              draw: true
+          };
       } else {
-        round++;
-        switchPlayer();
-        console.log(`Round ${round}`);
+          round++;
+          switchPlayer();
+          return {
+              gameOver: false
+          };
       }
-    }
   }
 
   const checkWin = (board) => {
-    const winningCombinations = [
-      [0, 1, 2], [3, 4, 5], [6, 7, 8], // Horizontal
-      [0, 3, 6], [1, 4, 7], [2, 5, 8], // Vertical
-      [0, 4, 8], [2, 4, 6]             // Diagonal
-    ];
+      const winningCombinations = [
+          [0, 1, 2],
+          [3, 4, 5],
+          [6, 7, 8], // Horizontal
+          [0, 3, 6],
+          [1, 4, 7],
+          [2, 5, 8], // Vertical
+          [0, 4, 8],
+          [2, 4, 6] // Diagonal
+      ];
 
-    for (const combination of winningCombinations) {
-      const [a, b, c] = combination;
-      if (board[a] && board[a] === board[b] && board[a] === board[c]) {
-        return board[a];
+      for (const combination of winningCombinations) {
+          const [a, b, c] = combination;
+          if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+              return board[a];
+          }
       }
-    }
-    return null;
+      return null;
   }
 
-  return { 
-    playRound, 
-    switchPlayer, 
-    getActivePlayer, 
-    getRound, 
-    checkWin,
-    getBoard  
+  return {
+      playRound,
+      switchPlayer,
+      getActivePlayer,
+      getRound,
+      checkWin,
+      getBoard,
+      resetGame
   };
 }
+
 
 const displayControls = () => {
   const game = gameControls();
   const boardDiv = document.querySelector('.board');
   const statusDiv = document.querySelector('.status');
-  
+  const titleDiv = document.querySelector('.title');
+
   const updateStatus = () => {
-    statusDiv.textContent = `Player ${game.getActivePlayer().sign}'s turn`;
+      statusDiv.textContent = `Player ${game.getActivePlayer().sign}'s turn`;
   };
-  
+
   const updateDisplay = () => {
-    boardDiv.innerHTML = '';
-    
-    
-    const currentBoard = game.getBoard().getBoard();
-    
-    currentBoard.forEach((squareValue, index) => {
-      const squareDiv = document.createElement('div');
-      squareDiv.classList.add('square');
-      
-      
-      squareDiv.textContent = squareValue || '';
-      
-      squareDiv.addEventListener('click', () => {
-        if (game.getRound() < 9 && !squareValue) {
-          game.playRound(index);
-          
+      boardDiv.innerHTML = '';
+
+      const currentBoard = game.getBoard().getBoard();
+
+      currentBoard.forEach((squareValue, index) => {
+          const squareDiv = document.createElement('div');
+          squareDiv.classList.add('square');
+          squareDiv.textContent = squareValue || '';
+
+          squareDiv.addEventListener('click', () => {
+              if (game.getRound() < 9 && !squareValue) {
+                  const gameState = game.playRound(index);
+                  updateDisplay();
+
+                  if (gameState.gameOver) {
+                      if (gameState.winner) {
+                          titleDiv.textContent = `Player ${gameState.winner} wins!`;
+                      } else {
+                          titleDiv.textContent = "It's a draw!";
+                      }
+                      disableBoard();
+                      showResetButton();
+                  } else {
+                      updateStatus();
+                  }
+              }
+          });
+
+          boardDiv.appendChild(squareDiv);
+      });
+  };
+
+  const showResetButton = () => {
+      statusDiv.textContent = '';
+      const resetButton = document.createElement('button');
+      resetButton.id = 'resetButton';
+      resetButton.textContent = 'Play Again';
+      resetButton.addEventListener('click', () => {
+          game.resetGame();
+          titleDiv.textContent = "ticTacToe";
+          enableBoard();
           updateDisplay();
           updateStatus();
-          
-          const winner = game.checkWin(game.getBoard().getBoard());
-          
-          if (winner) {
-            statusDiv.textContent = `Player ${winner} wins!`;
-            setTimeout(() => {
-              game.getBoard().resetBoard();
-              updateDisplay();
-              updateStatus();
-            }, 1500);
-          } else if (game.getRound() === 9) {
-            statusDiv.textContent = "It's a draw!";
-            setTimeout(() => {
-              game.getBoard().resetBoard();
-              updateDisplay();
-              updateStatus();
-            }, 1500);
-          }
-        }
+          statusDiv.innerHTML = `Player ${game.getActivePlayer().sign}'s turn`;
       });
-      
-      boardDiv.appendChild(squareDiv);
-    });
+      statusDiv.appendChild(resetButton);
   };
-  
-  updateDisplay();
-  updateStatus();
+
+
+  const disableBoard = () => {
+    const squares = document.querySelectorAll('.square');
+    squares.forEach(square => {
+        square.style.pointerEvents = 'none';
+    });
+};
+
+  const enableBoard = () => {
+      const squares = document.querySelectorAll('.square');
+      squares.forEach(square => {
+          square.style.pointerEvents = 'auto';
+      });
+  };
+
+  updateDisplay(); //initial display
+  updateStatus(); //initial status
 };
 
 // Start the game
 displayControls();
+
+// Theme switcher
+const toggleTheme = () => {
+  document.body.dataset.theme = document.body.dataset.theme === "dark" ? "light" : "dark";
+}
